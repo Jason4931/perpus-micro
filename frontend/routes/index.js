@@ -4,14 +4,13 @@ var fs = require('fs');
 var https = require('https');
 
 function promiseFetch(port, path, method, body) {
-  console.log(body);
   return new Promise((resolve, reject) => {
-    let data = JSON.stringify(body);
     const options = {
       hostname: 'localhost',
       port: port,
       path: path,
       method: method,
+      // body: JSON.stringify(body),
       key: fs.readFileSync('C:/node-api-mtls/client.key'),
       cert: fs.readFileSync('C:/node-api-mtls/client.crt'),
       ca: fs.readFileSync('C:/node-api-mtls/ca.crt'),
@@ -32,7 +31,11 @@ function promiseFetch(port, path, method, body) {
     });
     req.on('error', (e) => {
       console.error(e);
+      reject(e);
     });
+    if (body != null) {
+      req.write(JSON.stringify(body))
+    }
     req.end();
   })
 }
@@ -113,6 +116,23 @@ async function beFetch(act, db, query, id) {
     //   result = body;
     // })
     // .catch((error) => {console.log(result + error.stack)});
+  } else if (act == "enc") {
+    await fetch(`https://localhost:3030/${act}/${db}`, {
+      key: fs.readFileSync("C:/node-api-mtls/client.key"),
+      cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
+      ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
+      rejectUnauthorized: false
+    })
+    .then((response) => {
+      console.log(response);
+      if (response.ok) {
+        return response.json()//undefined
+      } throw (new Error("read failed"))
+    })
+    .then((body) => {
+      result = body;
+    })
+    .catch((error) => {console.log(result + error.stack)});
   } else {
     result = promiseFetch(3030, `/${act}/${db}?${query}`, 'GET', null);
     // await fetch(`https://localhost:3030/${act}/${db}?${query}`, {//https://localhost:3030/find/buku?del=
@@ -217,7 +237,7 @@ router.post('/register', async function (req, res, next) {
     res.redirect('/register?err=akun');
   } else {
     let passenc = await beFetch("enc", `${req.body.pass}`);
-    let create = await beFetch("create", "akun", { username: req.body.name, password: passenc, role: "user" });
+    let create = await beFetch("create", "akun", { username: req.body.name, password: passenc, role: "user" }, null);
     if (create == undefined) {
       res.redirect('/error?message=REGISTER_FAILED');
     } else {

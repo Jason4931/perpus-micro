@@ -31,6 +31,7 @@ router.get('/find/:db', async function (req, res, next) {//read
   }
 });
 router.get('/enc/:dt', async function (req, res, next) {//read
+  // res.json({ encdata: crypto.createHash('sha256').update(req.params.dt).digest('hex') });
   res.json(crypto.createHash('sha256').update(req.params.dt).digest('hex'));
 });
 router.get('/statistics/:dt', async function (req, res, next) {//read
