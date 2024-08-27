@@ -25,6 +25,8 @@ router.get('/find/:db', async function (req, res, next) {//read
   try {
     let db = stringModel(req.params.db);
     let arr = req.query;
+    console.log(arr)
+    console.log(await db.find(arr))
     res.json(await db.find(arr));
   } catch (err) {
     return next(err);
@@ -32,6 +34,8 @@ router.get('/find/:db', async function (req, res, next) {//read
 });
 router.get('/enc/:dt', async function (req, res, next) {//read
   // res.json({ encdata: crypto.createHash('sha256').update(req.params.dt).digest('hex') });
+  console.log(req.params.dt);
+  console.log(crypto.createHash('sha256').update(req.params.dt).digest('hex'));
   res.json(crypto.createHash('sha256').update(req.params.dt).digest('hex'));
 });
 router.get('/statistics/:dt', async function (req, res, next) {//read

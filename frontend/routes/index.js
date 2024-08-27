@@ -5,6 +5,7 @@ var https = require('https');
 
 function promiseFetch(port, path, method, body) {
   return new Promise((resolve, reject) => {
+    console.log(path)
     const options = {
       hostname: 'localhost',
       port: port,
@@ -28,7 +29,11 @@ function promiseFetch(port, path, method, body) {
       res.on('end', () => {
         try {
           console.log("data 1" + data1);
-          resolve(JSON.parse(data1));
+          if (body != null) {
+            resolve(JSON.parse(data1));
+          } else {
+            resolve(data1);
+          }
         } catch (e) {
           reject(e);
         }
@@ -106,51 +111,90 @@ async function beFetch(act, db, query, id) {
   } else if (act == "create") {
     result = promiseFetch(3060, `/${act}/${db}`, 'POST', query);
   } else if (act == "enc") {
-    const options = {
-      hostname: 'localhost',
-      port: 3030,
-      path: `/${act}/${db}`,
-      method: 'GET', // Change to 'POST' or other methods if needed
-      key: fs.readFileSync("C:/node-api-mtls/client.key"),
-      cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
-      ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
-      rejectUnauthorized: false
-    };
-
-    return new Promise((resolve, reject) => {
+    // result = promiseFetch(3030, `/${act}/${db}`, 'GET', db);
+    result = new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'localhost',
+        port: 3030,
+        path: `/${act}/${db}`,
+        method: 'GET',
+        key: fs.readFileSync('C:/node-api-mtls/client.key'),
+        cert: fs.readFileSync('C:/node-api-mtls/client.crt'),
+        ca: fs.readFileSync('C:/node-api-mtls/ca.crt'),
+        rejectUnauthorized: false,
+        headers: {
+          'Content-Type': 'application/txt',
+          'Content-Length': db ? Buffer.byteLength(db) : 0
+        }
+      };
       const req = https.request(options, (res) => {
-        let data = '';
-
-        // A chunk of data has been received.
+        let data1 = '';
         res.on('data', (chunk) => {
-          data += chunk;
+          data1 += chunk;
         });
-
-        // The whole response has been received.
         res.on('end', () => {
-          if (res.statusCode === 200) {
-            try {
-              // If the response is a string, resolve it directly
-              resolve(data);
-            } catch (e) {
-              reject(new Error('Error parsing response: ' + e.message));
-            }
-          } else {
-            reject(new Error(`Request failed with status code: ${res.statusCode}`));
+          try {
+            resolve(data1);
+          } catch (e) {
+            reject(e);
           }
         });
       });
-
       req.on('error', (e) => {
-        reject(new Error(`Problem with request: ${e.message}`));
+        console.error(e);
+        reject(e);
       });
-
-      // Write data to request body
-      req.write(JSON.stringify({ db, query, id }));
-
-      // End the request
       req.end();
-    });
+    })
+    // const options = {
+    //   hostname: 'localhost',
+    //   port: 3030,
+    //   path: `/${act}/${db}`,
+    //   method: 'GET', // Change to 'POST' or other methods if needed
+    //   key: fs.readFileSync("C:/node-api-mtls/client.key"),
+    //   cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
+    //   ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
+    //   rejectUnauthorized: false,
+    //   headers: {
+    //     'Content-Type': 'application/json; charset=utf-8',
+    //     'Content-Length': db ? Buffer.byteLength(db) : 0
+    //   }
+    // };
+
+    // return new Promise((resolve, reject) => {
+    //   const req = https.request(options, (res) => {
+    //     let data = '';
+
+    //     // A chunk of data has been received.
+    //     res.on('data', (chunk) => {
+    //       data += chunk;
+    //     });
+
+    //     // The whole response has been received.
+    //     res.on('end', () => {
+    //       if (res.statusCode === 200) {
+    //         try {
+    //           // If the response is a string, resolve it directly
+    //           resolve(data);
+    //         } catch (e) {
+    //           reject(new Error('Error parsing response: ' + e.message));
+    //         }
+    //       } else {
+    //         reject(new Error(`Request failed with status code: ${res.statusCode}`));
+    //       }
+    //     });
+    //   });
+
+    //   req.on('error', (e) => {
+    //     reject(new Error(`Problem with request: ${e.message}`));
+    //   });
+
+    //   // Write data to request body
+    //   req.write(JSON.stringify({ db, query, id }));
+
+    //   // End the request
+    //   req.end();
+    // });
   } else {
     result = promiseFetch(3030, `/${act}/${db}?${query}`, 'GET', null);
   }
@@ -250,8 +294,9 @@ router.post('/register', async function (req, res, next) {
   }
 });
 router.post('/login', async function (req, res, next) {
-  let passenc = await beFetch("enc", `${req.body.pass}`, "");
-  let akunfind = await beFetch("find", "akun", `username=${req.body.name}&password=${passenc}`);
+  let passenc = await beFetch("enc", `${req.body.pass}`);
+  console.log(passenc);
+  let akunfind = await beFetch("find", "akun", `username=${req.body.name}&password=${passenc.replace(/"/g, '')}`);
   if (akunfind.length == 1 && akunfind[0].del == null) {
     if (akunfind[0].accept != null) {
       req.session.Nama = req.body.name;
