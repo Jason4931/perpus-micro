@@ -10,19 +10,24 @@ function promiseFetch(port, path, method, body) {
       port: port,
       path: path,
       method: method,
-      // body: JSON.stringify(body),
       key: fs.readFileSync('C:/node-api-mtls/client.key'),
       cert: fs.readFileSync('C:/node-api-mtls/client.crt'),
       ca: fs.readFileSync('C:/node-api-mtls/ca.crt'),
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': body ? Buffer.byteLength(JSON.stringify(body)) : 0
+      }
     };
     const req = https.request(options, (res) => {
       let data1 = '';
       res.on('data', (chunk) => {
+        console.log("chunk " + chunk);
         data1 += chunk;
       });
       res.on('end', () => {
         try {
+          console.log("data 1" + data1);
           resolve(JSON.parse(data1));
         } catch (e) {
           reject(e);
@@ -34,6 +39,7 @@ function promiseFetch(port, path, method, body) {
       reject(e);
     });
     if (body != null) {
+      console.log("body " + JSON.stringify(body));
       req.write(JSON.stringify(body))
     }
     req.end();
@@ -99,23 +105,6 @@ async function beFetch(act, db, query, id) {
     // .catch((error) => {console.log(result + error.stack)});
   } else if (act == "create") {
     result = promiseFetch(3060, `/${act}/${db}`, 'POST', query);
-    // await fetch(`https://localhost:3060/${act}/${db}`, { 
-    //   method: "POST",
-    //   key: fs.readFileSync("C:/node-api-mtls/client.key"),
-    //   cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
-    //   ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
-    //   rejectUnauthorized: false,
-    //   body: JSON.stringify(query)
-    // })
-    // .then((response) => {
-    //   if (response.ok) {
-    //     return response.json()
-    //   } throw (new Error("create failed"))
-    // })
-    // .then((body) => {
-    //   result = body;
-    // })
-    // .catch((error) => {console.log(result + error.stack)});
   } else if (act == "enc") {
     const options = {
       hostname: 'localhost',
@@ -156,27 +145,14 @@ async function beFetch(act, db, query, id) {
         reject(new Error(`Problem with request: ${e.message}`));
       });
 
+      // Write data to request body
+      req.write(JSON.stringify({ db, query, id }));
+
       // End the request
       req.end();
     });
   } else {
     result = promiseFetch(3030, `/${act}/${db}?${query}`, 'GET', null);
-    // await fetch(`https://localhost:3030/${act}/${db}?${query}`, {//https://localhost:3030/find/buku?del=
-    //   key: fs.readFileSync("C:/node-api-mtls/client.key"),
-    //   cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
-    //   ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
-    //   rejectUnauthorized: false
-    // })
-    // .then((response) => {
-    //   console.log(response);
-    //   if (response.ok) {
-    //     return response.json()//undefined
-    //   } throw (new Error("read failed"))
-    // })
-    // .then((body) => {
-    //   result = body;
-    // })
-    // .catch((error) => {console.log(result + error.stack)});
   }
   return result;
 }
@@ -263,7 +239,9 @@ router.post('/register', async function (req, res, next) {
     res.redirect('/register?err=akun');
   } else {
     let passenc = await beFetch("enc", `${req.body.pass}`);
+    console.log("encrypted password " + passenc);
     let create = await beFetch("create", "akun", { username: req.body.name, password: passenc, role: "user" }, null);
+    console.log("created account " + create);
     if (create == undefined) {
       res.redirect('/error?message=REGISTER_FAILED');
     } else {

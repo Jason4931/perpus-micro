@@ -41,15 +41,17 @@ app.use('/users', usersRouter);
 
 let mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb+srv://Jason4931:cSbqK0jfvZpsoICA@cluster0.csawbwp.mongodb.net/perpus?retryWrites=true&w=majority&appName=Cluster0');
+// mongoose.connect('mongodb+srv://Jason4931:cSbqK0jfvZpsoICA@cluster0.csawbwp.mongodb.net/perpus?retryWrites=true&w=majority&appName=Cluster0');
+mongoose.connect('mongodb+srv://mada:ARSM9i90epWJLRdp@cluster0.02eby.mongodb.net/perpus?retryWrites=true&w=majority&appName=Cluster0');
+
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

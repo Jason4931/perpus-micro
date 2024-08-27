@@ -6,8 +6,6 @@ let buku = require('../models/buku.js');
 let komentar = require('../models/komentar.js');
 let pinjam = require('../models/pinjam.js');
 
-let crypto = require('crypto');
-
 function stringModel(string) {
   switch (string) {
     case "akun":
@@ -23,13 +21,12 @@ function stringModel(string) {
 /* GET data */
 router.post('/create/:db', async function (req, res, next) {//modify
   try {
-    // if (req.header == null || req.header.key == null || req.header.key != 123) {
-    //   res.status(403);
-    //   res.send("wrong token");
-    // }
     let db = stringModel(req.params.db);
     let arr = req.body;
-    console.log(arr)
+
+    console.log("body:", arr);
+    console.log("body (formatted):", JSON.stringify(arr, null, 2));
+
     new db(arr).save();
     res.json("success");
   } catch (err) {
