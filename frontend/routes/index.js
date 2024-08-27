@@ -117,22 +117,48 @@ async function beFetch(act, db, query, id) {
     // })
     // .catch((error) => {console.log(result + error.stack)});
   } else if (act == "enc") {
-    await fetch(`https://localhost:3030/${act}/${db}`, {
+    const options = {
+      hostname: 'localhost',
+      port: 3030,
+      path: `/${act}/${db}`,
+      method: 'GET', // Change to 'POST' or other methods if needed
       key: fs.readFileSync("C:/node-api-mtls/client.key"),
       cert: fs.readFileSync("C:/node-api-mtls/client.crt"),
       ca: fs.readFileSync("C:/node-api-mtls/ca.crt"),
       rejectUnauthorized: false
-    })
-    .then((response) => {
-      console.log(response);
-      if (response.ok) {
-        return response.json()//undefined
-      } throw (new Error("read failed"))
-    })
-    .then((body) => {
-      result = body;
-    })
-    .catch((error) => {console.log(result + error.stack)});
+    };
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let data = '';
+
+        // A chunk of data has been received.
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        // The whole response has been received.
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            try {
+              // If the response is a string, resolve it directly
+              resolve(data);
+            } catch (e) {
+              reject(new Error('Error parsing response: ' + e.message));
+            }
+          } else {
+            reject(new Error(`Request failed with status code: ${res.statusCode}`));
+          }
+        });
+      });
+
+      req.on('error', (e) => {
+        reject(new Error(`Problem with request: ${e.message}`));
+      });
+
+      // End the request
+      req.end();
+    });
   } else {
     result = promiseFetch(3030, `/${act}/${db}?${query}`, 'GET', null);
     // await fetch(`https://localhost:3030/${act}/${db}?${query}`, {//https://localhost:3030/find/buku?del=
@@ -260,7 +286,7 @@ router.post('/login', async function (req, res, next) {
     res.redirect('/login?err=akun');
   }
 });
-router.get('/logout', async function(req, res, next) {
+router.get('/logout', async function (req, res, next) {
   req.session.Nama = null;
   req.session.Role = null;
   res.redirect('/');
